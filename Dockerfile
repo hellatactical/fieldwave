@@ -19,9 +19,11 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
 
 COPY src ./src
+COPY test/voice.test.js ./test/voice.test.js
 RUN mkdir -p /app/data && chown -R node:node /app
 
 USER node
+RUN node --test test/voice.test.js
 VOLUME ["/app/data"]
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
