@@ -38,7 +38,7 @@ Fieldwave turns a Discord voice channel into a shared listening room. Search wit
 
 ## Bring it home
 
-Once the package is published, use **Unraid → Docker → Add Container** with:
+Use **Unraid → Docker → Add Container** with the public image:
 
 ```text
 ghcr.io/hellatactical/fieldwave:latest
@@ -48,7 +48,7 @@ Map **3000/TCP** for the web panel and **`/app/data`** for persistent settings. 
 
 **[Follow the Unraid install guide →](docs/UNRAID.md)**
 
-A personal [Unraid template](unraid/fieldwave.xml) is included. Fieldwave is not automatically listed in Community Applications. If the image has not been published yet, follow [Publishing](docs/PUBLISHING.md) first. The configured destination is `hellatactical/fieldwave`.
+A personal [Unraid template](unraid/fieldwave.xml) is included. Fieldwave is not automatically listed in Community Applications. The [container package](https://github.com/hellatactical/fieldwave/pkgs/container/fieldwave) is public; no GitHub login is needed to download it.
 
 <details>
 <summary><strong>Prefer Compose or building it yourself?</strong></summary>
@@ -84,7 +84,7 @@ AI is part of how the project was made; it is not a runtime dependency. The bot 
 - Keep the admin panel on a trusted LAN or behind a private VPN/HTTPS proxy. The login controls all servers the bot joins.
 - Settings survive container updates. Active queues, playback history, polls and web sessions restart with the process.
 - Music-source extraction can break when providers change. Only play content you are authorized to access.
-- Local syntax, automated HTTP/control tests and browser checks have passed. Live Discord voice playback and a full container build still need deployment validation; see [validation details](docs/SETUP.md#validation-and-source-layout).
+- Automated tests, configuration checks and the [Linux container build](https://github.com/hellatactical/fieldwave/actions/runs/33848362861) passed. Anonymous image access is verified. Live Discord voice playback still needs your bot credentials; see [validation details](docs/SETUP.md#validation-and-source-layout).
 
 ## Under the hood
 
