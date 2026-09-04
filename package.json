@@ -1,0 +1,23 @@
+{
+  "name": "fieldwave",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Self-hosted Discord music + utility bot for Unraid",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "check": "node scripts/check.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@discord-player/extractor": "7.2.0",
+    "discord-player": "7.2.0",
+    "discord-player-youtubedlp": "1.2.1",
+    "discord.js": "14.22.1",
+    "dotenv": "16.6.1"
+  }
+}

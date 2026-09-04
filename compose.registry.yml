@@ -1,0 +1,16 @@
+# Set FIELDWAVE_IMAGE in .env after the GitHub package is published.
+services:
+  fieldwave:
+    image: ${FIELDWAVE_IMAGE:?Set FIELDWAVE_IMAGE to the published ghcr.io image}
+    container_name: fieldwave
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${PANEL_BIND_IP:-0.0.0.0}:${PANEL_HOST_PORT:-3000}:${PANEL_PORT:-3000}"
+    volumes:
+      - ${FIELDWAVE_DATA_DIR:-/mnt/user/appdata/fieldwave}:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

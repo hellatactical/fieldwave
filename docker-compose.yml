@@ -1,0 +1,17 @@
+services:
+  discord-bot:
+    build: .
+    image: home-discord-bot:local
+    container_name: home-discord-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${PANEL_BIND_IP:-0.0.0.0}:${PANEL_HOST_PORT:-3000}:${PANEL_PORT:-3000}"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - /mnt/user/appdata/home-discord-bot/data:/app/data
