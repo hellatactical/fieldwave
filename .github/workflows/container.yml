@@ -29,7 +29,11 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: bash -n unraid-start.sh unraid-update.sh
-      - run: docker compose --env-file .env.example config --no-env-resolution --quiet
+      - name: Validate Compose configuration
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+          docker compose -f compose.registry.yml config --quiet
 
   image:
     needs: check
