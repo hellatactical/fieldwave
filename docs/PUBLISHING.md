@@ -1,6 +1,6 @@
 # Publish Fieldwave
 
-The repository and container image must be published before the image-based Unraid install works. This source bundle does not imply that a public image already exists.
+The official repository and container are published at `hellatactical/fieldwave` and `ghcr.io/hellatactical/fieldwave:latest`. Both are public. To install the existing image, follow [the Unraid guide](UNRAID.md). The steps below are for maintaining this project or publishing your own fork.
 
 1. Choose your GitHub account, repository name and visibility. Suggested name: `fieldwave`.
 2. Run `node scripts/configure-repo.js YOUR-ACCOUNT fieldwave` from the project folder. This fills the container reference, Unraid template and documentation links. It does not contact GitHub.

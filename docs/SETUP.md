@@ -208,7 +208,7 @@ npm test
 
 `npm run check` checks every JavaScript file. Tests cover HTTP authentication, CSRF rejection, logout, login throttling, request size limits, assets, every playback control, per-server isolation, offline/empty queue handling and settings persistence using simulated playback. No real Discord credentials are used.
 
-Validation performed for this release: Node 24 dependency installation, all JavaScript syntax checks and automated tests passed; both Unraid scripts passed Bash syntax checks; Compose configuration validated with the example environment (without resolving a private `.env`); Discord Player/extractor imports, construction and registration succeeded; browser login, playback-state changes, server selection and responsive layout were checked with preview data. Docker image build and actual Discord voice playback remain unverified because the local Docker engine was unavailable and no real Discord credentials were supplied.
+Validation performed for this release: Node 24 dependency installation, all JavaScript syntax checks and automated tests passed; both Unraid scripts passed Bash syntax checks; both Compose configurations validated using the example environment; Discord Player/extractor imports, construction and registration succeeded; browser login, playback-state changes, server selection and responsive layout were checked with preview data. The [GitHub Linux AMD64 container build](https://github.com/hellatactical/fieldwave/actions/runs/33848362861) passed and published the image, and an anonymous registry manifest request returned HTTP 200. Actual Discord voice playback and a live Unraid deployment remain unverified because no real Discord credentials or Unraid access were supplied.
 
 ```text
 home-discord-bot/

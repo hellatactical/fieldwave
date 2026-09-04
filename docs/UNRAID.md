@@ -1,6 +1,6 @@
 # Install Fieldwave on Unraid
 
-This route uses the prebuilt GitHub Container Registry image. **The repository owner must complete [publishing](PUBLISHING.md) first.** The configured image destination is `ghcr.io/hellatactical/fieldwave:latest`.
+This route uses the public, prebuilt image `ghcr.io/hellatactical/fieldwave:latest`. Its Linux build and anonymous registry access have been verified. No GitHub login is needed on Unraid.
 
 ## Prepare your Discord bot
 
