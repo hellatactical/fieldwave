@@ -500,7 +500,7 @@ function updatePresence() {
     status: 'online',
   });
 }
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`Logged in as ${client.user.tag}`);
   updatePresence();
 });
