@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Container version="2">
+  <Name>fieldwave</Name>
+  <Repository>ghcr.io/hellatactical/fieldwave:latest</Repository>
+  <Registry>https://github.com/hellatactical/fieldwave/pkgs/container/fieldwave</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/hellatactical/fieldwave/issues</Support>
+  <Project>https://github.com/hellatactical/fieldwave</Project>
+  <Overview>Your squad. Your soundtrack. Self-hosted Discord music with a private control panel. Made with AI assistance. Prepare appdata ownership for UID 1000 before first launch; see the project install guide.</Overview>
+  <Category>MediaApp:Music Tools:</Category>
+  <WebUI>http://[IP]:[PORT:3000]</WebUI>
+  <Icon>https://raw.githubusercontent.com/hellatactical/fieldwave/main/docs/assets/icon.png</Icon>
+  <ExtraParams>--log-opt max-size=10m --log-opt max-file=3</ExtraParams>
+  <Config Name="Web panel" Target="3000" Default="3000" Mode="tcp" Description="HTTP panel port on your trusted LAN" Type="Port" Display="always" Required="true" Mask="false">3000</Config>
+  <Config Name="Appdata" Target="/app/data" Default="/mnt/user/appdata/fieldwave" Mode="rw" Description="Persistent settings; writable by UID 1000" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/fieldwave</Config>
+  <Config Name="Discord bot token" Target="DISCORD_TOKEN" Default="" Mode="" Description="Bot token from Discord Developer Portal" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="Application ID" Target="DISCORD_CLIENT_ID" Default="" Mode="" Description="Discord Application ID" Type="Variable" Display="always" Required="true" Mask="false"></Config>
+  <Config Name="Discord server ID" Target="DISCORD_GUILD_ID" Default="" Mode="" Description="Optional; blank registers global commands" Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="Admin password" Target="PANEL_PASSWORD" Default="" Mode="" Description="Unique panel password; at least 16 characters" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="Internal panel port" Target="PANEL_PORT" Default="3000" Mode="" Description="Keep at 3000 unless also changing the container port mapping" Type="Variable" Display="advanced" Required="true" Mask="false">3000</Config>
+  <Config Name="HTTPS-only cookies" Target="PANEL_SECURE_COOKIE" Default="false" Mode="" Description="Set true only with HTTPS" Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+  <Config Name="Listening activity" Target="BOT_STATUS" Default="/play · fieldwave" Mode="" Description="Initial Discord status; editable in panel" Type="Variable" Display="always" Required="false" Mask="false">/play · fieldwave</Config>
+</Container>
