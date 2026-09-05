@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-let csrf = '', state = null, selected = '', busy = false, timer, lastGuild = '', settingsDirty = false, botDirty = false;
+let csrf = '', state = null, selected = '', busy = false, timer, lastGuild = '', settingsDirty = false, botDirty = false, commandDirty = false;
 async function api(path, data) {
   const response = await fetch(`/api/${path}`, { method: data === undefined ? 'GET' : 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf }, body: data === undefined ? undefined : JSON.stringify(data) });
   const result = await response.json();
@@ -14,6 +14,34 @@ function message(text) { $('notice').textContent = text; }
 function clock(seconds) { seconds = Math.max(0, Math.floor(seconds || 0)); return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`; }
 function uptime(seconds) { const d = Math.floor(seconds / 86400), h = Math.floor(seconds % 86400 / 3600), m = Math.floor(seconds % 3600 / 60); return `${d ? `${d}d ` : ''}${h ? `${h}h ` : ''}${m}m`; }
 const current = () => state?.guilds.find(g => g.id === selected);
+function renderCommands(g) {
+  const settings = g?.settings || { disabledCommands: [], customCommands: [] };
+  const key = JSON.stringify([selected, settings.disabledCommands, settings.customCommands]);
+  if (!commandDirty && $('builtInCommands').dataset.key !== key) {
+    const disabled = new Set(settings.disabledCommands);
+    $('builtInCommands').replaceChildren(...(state.commandCatalog || []).map(command => {
+      const label = document.createElement('label'); label.className = 'command-toggle';
+      const input = document.createElement('input'); input.type = 'checkbox'; input.checked = !disabled.has(command.name); input.dataset.command = command.name;
+      const text = document.createElement('span'), name = document.createElement('strong'), description = document.createElement('small');
+      name.textContent = `/${command.name}`; description.textContent = command.description; text.append(name, description); label.append(input, text); return label;
+    }));
+    $('builtInCommands').dataset.key = key;
+  }
+  $('customCommands').replaceChildren(...settings.customCommands.map(command => {
+    const row = document.createElement('div'); row.className = 'custom-command';
+    const text = document.createElement('div'), name = document.createElement('strong'), response = document.createElement('small'), remove = document.createElement('button');
+    name.textContent = `/${command.name}`; response.textContent = command.response; text.append(name, response);
+    remove.type = 'button'; remove.textContent = 'Remove'; remove.disabled = busy;
+    remove.onclick = async () => {
+      const customCommands = current().settings.customCommands.filter(item => item.name !== command.name);
+      await mutate('commands', { guildId: selected, disabledCommands: current().settings.disabledCommands, customCommands }, `/${command.name} removed.`);
+    };
+    row.append(text, remove); return row;
+  }));
+  $('customCount').textContent = `${settings.customCommands.length} / 5 commands`;
+  $('builtInForm').querySelectorAll('input,button').forEach(element => { element.disabled = !g || busy; });
+  $('customCommandForm').querySelectorAll('input,textarea,button').forEach(element => { element.disabled = !g || busy || (settings.customCommands.length >= 5 && element.type === 'submit'); });
+}
 function render() {
   $('botName').textContent = state.name; $('online').textContent = state.online ? 'Online' : 'Offline';
   $('uptime').textContent = uptime(state.uptime); $('servers').textContent = state.serverCount;
@@ -56,6 +84,7 @@ function render() {
   }));
   if (lastGuild !== selected) settingsDirty = false;
   if (!settingsDirty) { $('defaultVolume').value = g?.settings.volume ?? 75; $('defaultAutoplay').checked = g?.settings.autoplay || false; }
+  renderCommands(g);
   lastGuild = selected;
   $('guildSettings').querySelectorAll('input,button').forEach(el => { el.disabled = !g || busy; });
   if (!botDirty) $('statusText').value = state.settings.status;
@@ -74,10 +103,11 @@ async function poll() {
 async function enter(token) { csrf = token; $('login').hidden = true; $('dashboard').hidden = false; await poll(); }
 async function mutate(path, data, success) {
   if (busy) return;
-  busy = true; render();
-  try { await api(path, data); message(success); }
+  let ok = false; busy = true; render();
+  try { await api(path, data); message(success); ok = true; }
   catch (err) { message(err.message); }
   finally { busy = false; await poll(); }
+  return ok;
 }
 $('loginForm').addEventListener('submit', async event => {
   event.preventDefault(); const button = event.submitter; button.disabled = true; $('loginError').textContent = '';
@@ -86,7 +116,7 @@ $('loginForm').addEventListener('submit', async event => {
   finally { button.disabled = false; }
 });
 $('logout').onclick = async () => { try { await api('logout', {}); showLogin(); } catch (err) { message(err.message); } };
-$('guild').onchange = () => { selected = $('guild').value; render(); };
+$('guild').onchange = () => { selected = $('guild').value; settingsDirty = false; commandDirty = false; $('builtInCommands').dataset.key = ''; render(); };
 document.querySelectorAll('[data-action]').forEach(button => button.onclick = () => mutate('control', { guildId: selected, action: button.dataset.action }, 'Playback updated.'));
 $('volume').oninput = () => { $('volumeValue').textContent = `${$('volume').value}%`; };
 $('volume').onchange = () => mutate('control', { guildId: selected, action: 'volume', value: Number($('volume').value) }, 'Volume saved.');
@@ -96,5 +126,18 @@ $('guildSettings').oninput = () => { settingsDirty = true; };
 $('botSettings').oninput = () => { botDirty = true; };
 $('guildSettings').onsubmit = async e => { e.preventDefault(); const data = { guildId: selected, volume: Number($('defaultVolume').value), autoplay: $('defaultAutoplay').checked }; await mutate('settings', data, 'Defaults saved for the next music session.'); settingsDirty = false; };
 $('botSettings').onsubmit = async e => { e.preventDefault(); await mutate('settings', { status: $('statusText').value }, 'Bot presence saved.'); botDirty = false; };
+$('builtInCommands').onchange = () => { commandDirty = true; };
+$('builtInForm').onsubmit = async event => {
+  event.preventDefault();
+  const disabledCommands = [...$('builtInCommands').querySelectorAll('input[data-command]')].filter(input => !input.checked).map(input => input.dataset.command);
+  const ok = await mutate('commands', { guildId: selected, disabledCommands, customCommands: current().settings.customCommands }, 'Command access saved.');
+  if (ok) commandDirty = false;
+};
+$('customCommandForm').onsubmit = async event => {
+  event.preventDefault();
+  const command = { name: $('customName').value.trim().toLowerCase(), description: $('customDescription').value.trim(), response: $('customResponse').value.trim() };
+  const ok = await mutate('commands', { guildId: selected, disabledCommands: current().settings.disabledCommands, customCommands: [...current().settings.customCommands, command] }, `/${command.name} added.`);
+  if (ok) { event.target.reset(); commandDirty = false; }
+};
 $('artwork').onerror = () => { $('artwork').hidden = true; $('artPlaceholder').hidden = false; };
 api('session').then(s => enter(s.csrf)).catch(() => showLogin());

@@ -1,4 +1,4 @@
-# Home Discord Bot — Unraid V1.1
+# Fieldwave — Unraid setup
 
 A self-hosted Discord music and utility bot with a private web control panel. It runs as **one Node 24 process in one Docker container**, using Discord Player, yt-dlp and FFmpeg. No separate web service, database, or frontend build is needed.
 
@@ -10,6 +10,7 @@ A self-hosted Discord music and utility bot with a private web control panel. It
 - Server selector with current voice channel, playback state, track artwork, progress and full upcoming queue.
 - Previous, pause/resume, skip, stop/disconnect, shuffle, track/queue loop, related-song autoplay and volume.
 - Saved bot presence text and per-server starting volume/autoplay preferences.
+- Per-server built-in command switches and up to five custom static-response commands.
 - Latest 100 log entries, refreshed along with playback every three seconds.
 - Responsive dark interface for desktop and phones.
 
@@ -116,6 +117,18 @@ If switching from the script-managed container, stop and remove that container f
 9. Stop playback. The bot disconnects and clears the active queue.
 10. Save server defaults, restart the container, and confirm they remain saved.
 
+### Manage commands and create `/rules`
+
+1. Open **Commands** in the left side of the panel.
+2. Select the Discord server you want to configure using the server selector above.
+3. Uncheck any built-in commands you do not want in that server, then choose **Save access**.
+4. Under **Custom responses**, enter `rules` as the command name, a short Discord description such as `Show the server rules`, and the message the bot should return.
+5. Choose **Add command**. Fieldwave saves and registers `/rules` for that selected server immediately. Discord can take a short time to refresh its slash-command list.
+
+Custom command names use lowercase letters, numbers, hyphens or underscores and cannot replace built-in Fieldwave commands. Each server can have up to five custom commands. Responses are plain text up to 1,200 characters, and member, role and `@everyone` mentions are suppressed. Use **Remove** beside a command to unregister it.
+
+Command management requires `REGISTER_COMMANDS=true`, which is the default. When `DISCORD_GUILD_ID` contains one server ID, Fieldwave publishes only that server's enabled built-ins and custom commands. When `DISCORD_GUILD_ID` is blank, built-ins are global and custom commands remain specific to each server. A disabled global command may remain visible in Discord, but Fieldwave will tell the user it is disabled in that server.
+
 Autoplay and loop share Discord Player's repeat mode, so enabling one replaces the other. Turning on autoplay selects related songs after the manual queue runs out. Loop is session-only; volume and autoplay control changes also update saved defaults. **Save defaults** affects the next session without interrupting the current one. Saved presence overrides `BOT_STATUS` after you first edit it in the panel.
 
 Queue, history, active polls, panel sessions and recent logs are in memory and reset on restart, as in V1. The bot's name/avatar remain managed in Discord's Developer Portal. Track artwork/progress appear only when the source supplies them; unavailable artwork gets a placeholder.
@@ -181,6 +194,8 @@ docker inspect --format='{{.State.Health.Status}}' home-discord-bot
 
 Settings are saved in `/app/data/settings.json`. Logs are capped at 200 entries in process memory, with the latest 100 exposed to authenticated users. Docker log rotation is configured separately. Exact token/password values and URL query strings are redacted from captured console messages; still review logs before sharing them.
 
+Built-in command access and custom commands are stored with the selected server's other settings in the same file. They survive normal container updates when `/app/data` remains mapped to appdata.
+
 ## 7. Login and troubleshooting
 
 - **Cannot connect:** inspect container logs, confirm it is running and check host/container port mapping and LAN address. Do not set `PANEL_HOST` to loopback inside the container.
@@ -206,7 +221,7 @@ npm run check
 npm test
 ```
 
-`npm run check` checks every JavaScript file. Tests cover HTTP authentication, CSRF rejection, logout, login throttling, request size limits, assets, every playback control, per-server isolation, offline/empty queue handling and settings persistence using simulated playback. No real Discord credentials are used.
+`npm run check` checks every JavaScript file. Tests cover HTTP authentication, CSRF rejection, logout, login throttling, request size limits, assets, every playback control, per-server isolation, command validation and persistence, offline/empty queue handling and settings persistence using simulated playback. No real Discord credentials are used.
 
 Validation performed for this release: Node 24 dependency installation, all JavaScript syntax checks and automated tests passed; both Unraid scripts passed Bash syntax checks; both Compose configurations validated using the example environment; Discord Player/extractor imports, construction and registration succeeded; browser login, playback-state changes, server selection and responsive layout were checked with preview data. The [GitHub Linux AMD64 container build](https://github.com/hellatactical/fieldwave/actions/runs/33848362861) passed and published the image, and an anonymous registry manifest request returned HTTP 200. Actual Discord voice playback and a live Unraid deployment remain unverified because no real Discord credentials or Unraid access were supplied.
 
@@ -217,6 +232,7 @@ home-discord-bot/
   unraid-start.sh, unraid-update.sh
   src/index.js             Bot startup and original command handlers
   src/commands.js          Original command definitions
+  src/command-settings.js  Built-in access and custom-command validation
   src/ui.js                Original Discord player/poll cards
   src/store.js             Persistent guild and bot settings
   src/panel.js             Playback/settings adapter

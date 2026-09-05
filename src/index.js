@@ -25,6 +25,7 @@ const {
 const crypto = require('node:crypto');
 
 const { commands } = require('./commands');
+const { customCommandData } = require('./command-settings');
 const { getGuild, patchGuild, getBot } = require('./store');
 const { startPanel } = require('./panel');
 const {
@@ -52,23 +53,34 @@ const client = new Client({
 });
 
 const player = new Player(client);
+const discordRest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 const panelRefs = new Map();       // guildId -> { channelId, messageId }
 const textChannels = new Map();    // guildId -> channelId
 const polls = new Map();           // pollId -> poll state
 
 async function registerCommands() {
   if ((process.env.REGISTER_COMMANDS || 'true').toLowerCase() !== 'true') return;
-  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-  const body = commands.map(c => c.toJSON());
   const guildId = process.env.DISCORD_GUILD_ID?.trim();
 
   if (guildId) {
-    await rest.put(Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, guildId), { body });
-    console.log(`Registered ${body.length} guild commands in ${guildId}.`);
+    await syncGuildCommands(guildId);
   } else {
-    await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body });
+    const body = commands.map(command => command.toJSON());
+    await discordRest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body });
     console.log(`Registered ${body.length} global commands. Global propagation can take a while.`);
   }
+}
+
+async function syncGuildCommands(guildId) {
+  if ((process.env.REGISTER_COMMANDS || 'true').toLowerCase() !== 'true') return;
+  const setting = getGuild(guildId);
+  const configuredGuild = process.env.DISCORD_GUILD_ID?.trim();
+  const builtIns = configuredGuild === guildId
+    ? commands.filter(command => !setting.disabledCommands.includes(command.name)).map(command => command.toJSON())
+    : [];
+  const body = [...builtIns, ...customCommandData(setting.customCommands)];
+  await discordRest.put(Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, guildId), { body });
+  console.log(`Registered ${body.length} server commands in ${guildId}.`);
 }
 
 function getQueue(guildId) {
@@ -154,6 +166,7 @@ async function searchForPlay(query, requestedBy) {
 
 async function handleAutocomplete(interaction) {
   if (interaction.commandName !== 'play') return interaction.respond([]);
+  if (getGuild(interaction.guildId).disabledCommands.includes('play')) return interaction.respond([]);
   const query = interaction.options.getFocused()?.trim();
   if (!query || query.length < 2) return interaction.respond([]);
 
@@ -459,6 +472,13 @@ client.on('interactionCreate', async interaction => {
     }
     if (!interaction.isChatInputCommand()) return;
 
+    const commandSetting = getGuild(interaction.guildId);
+    const custom = commandSetting.customCommands.find(command => command.name === interaction.commandName);
+    if (custom) return safeReply(interaction, { content: custom.response, allowedMentions: { parse: [] } });
+    if (commandSetting.disabledCommands.includes(interaction.commandName)) {
+      return safeReply(interaction, { content: `/${interaction.commandName} is disabled in this server.`, ephemeral: true });
+    }
+
     const musicCommands = new Set(['play','pause','resume','skip','previous','stop','disconnect','queue','history','nowplaying','shuffle','loop','autoplay','volume','remove','clear']);
     if (musicCommands.has(interaction.commandName)) return handleMusicCommand(interaction);
     return handleUtilityCommand(interaction);
@@ -500,10 +520,17 @@ function updatePresence() {
     status: 'online',
   });
 }
-client.once('clientReady', () => {
+client.once('clientReady', async () => {
   console.log(`Logged in as ${client.user.tag}`);
   updatePresence();
+  if (!process.env.DISCORD_GUILD_ID?.trim()) {
+    for (const guildId of client.guilds.cache.keys()) {
+      try { await syncGuildCommands(guildId); }
+      catch (err) { console.error(`Could not sync custom commands in ${guildId}:`, err); }
+    }
+  }
 });
+client.on('guildCreate', guild => syncGuildCommands(guild.id).catch(err => console.error(`[${guild.name}] Command sync failed:`, err)));
 client.on('shardDisconnect', () => console.warn('Discord gateway disconnected; reconnecting.'));
 client.on('shardResume', () => console.log('Discord gateway reconnected.'));
 client.on('error', err => console.error('Discord client error:', err));
@@ -532,7 +559,7 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 
 (async () => {
   try {
-    webServer = startPanel({ client, player, refresh: upsertPanel, idle: setPanelIdle, presence: updatePresence });
+    webServer = startPanel({ client, player, refresh: upsertPanel, idle: setPanelIdle, presence: updatePresence, syncCommands: syncGuildCommands });
     webServer.on('error', err => { console.error('Panel server error:', err); process.exit(1); });
     webServer.on('listening', () => console.log(`Web panel listening on port ${webServer.address().port}`));
     await registerCommands();
