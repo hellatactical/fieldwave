@@ -34,7 +34,8 @@ Fieldwave turns a Discord voice channel into a shared listening room. Search wit
 | Interactive player card | Pause, skip, previous and stop | Prebuilt image through GHCR |
 | Queue, shuffle and playback history | Loop, autoplay and volume | Unraid container template |
 | Related-song autoplay | Per-server controls and defaults | Persistent local settings |
-| Polls, dice and everyday utilities | Status, uptime and recent logs | No AI API key required |
+| Polls, dice and everyday utilities | Command switches and custom replies | No AI API key required |
+| Custom `/rules`-style commands | Status, uptime and recent logs | Settings survive updates |
 
 ## Bring it home
 
@@ -71,7 +72,7 @@ Discord /play ──→ Fieldwave ──→ Discord Player + yt-dlp + FFmpeg ─
               Private web panel
 ```
 
-There is one process and no separate database service. The panel uses a password-protected session and controls the bot's existing playback queues. Music starts through `/play` in Discord. Your bot identity belongs to your own Discord application.
+There is one process and no separate database service. The panel uses a password-protected session and controls the bot's existing playback queues. Its Commands page can disable built-in commands per server and create up to five simple server-specific replies such as `/rules`. Music starts through `/play` in Discord. Your bot identity belongs to your own Discord application.
 
 ## Made with AI. Built for a real home server.
 
