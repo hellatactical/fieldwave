@@ -1,12 +1,13 @@
 const { QueueRepeatMode } = require('discord-player');
 const { getGuild, patchGuild, getBot, patchBot } = require('./store');
+const { catalog, validateCommandSettings } = require('./command-settings');
 const { startWeb } = require('./web');
 const { recentLogs } = require('./recent-logs');
 
 const invalid = message => Object.assign(new Error(message), { status: 400 });
 const trackInfo = t => t ? ({ title: t.title, author: t.author, artwork: /^https:\/\//.test(t.thumbnail || '') ? t.thumbnail : null, duration: t.duration, durationMS: t.durationMS || 0 }) : null;
 
-function startPanel({ client, player, refresh, idle, presence }) {
+function startPanel({ client, player, refresh, idle, presence, syncCommands = async () => {} }) {
   const busy = new Set();
   const guild = id => {
     if (typeof id !== 'string' || !client.guilds.cache.has(id)) throw invalid('Select a connected Discord server.');
@@ -18,7 +19,7 @@ function startPanel({ client, player, refresh, idle, presence }) {
     snapshot: () => ({
       online: client.isReady(), name: client.user?.username || 'Your Discord bot',
       uptime: Math.floor(process.uptime()), discordUptime: Math.floor((client.uptime || 0) / 1000),
-      serverCount: client.guilds.cache.size, settings: getBot(),
+      serverCount: client.guilds.cache.size, settings: getBot(), commandCatalog: catalog,
       guilds: [...client.guilds.cache.values()].map(g => {
         const q = player.nodes.get(g.id);
         const timestamp = q?.node.getTimestamp();
@@ -73,6 +74,15 @@ function startPanel({ client, player, refresh, idle, presence }) {
         patchBot({ status: data.status.trim() }); presence();
       }
       console.log('[Panel] Settings saved');
+    },
+    commands: async data => {
+      guild(data.guildId);
+      let next;
+      try { next = validateCommandSettings(data.disabledCommands, data.customCommands); }
+      catch (err) { throw invalid(err.message); }
+      patchGuild(data.guildId, next);
+      await syncCommands(data.guildId);
+      console.log(`[Panel] Commands saved in ${client.guilds.cache.get(data.guildId).name}`);
     },
   });
 }

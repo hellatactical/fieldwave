@@ -32,6 +32,16 @@ function getGuild(guildId) {
     db.guilds[guildId] = {
       volume: defaultVolume,
       autoplay: false,
+      disabledCommands: [],
+      customCommands: [],
+    };
+    save();
+  }
+  if (!Array.isArray(db.guilds[guildId].disabledCommands) || !Array.isArray(db.guilds[guildId].customCommands)) {
+    db.guilds[guildId] = {
+      ...db.guilds[guildId],
+      disabledCommands: Array.isArray(db.guilds[guildId].disabledCommands) ? db.guilds[guildId].disabledCommands : [],
+      customCommands: Array.isArray(db.guilds[guildId].customCommands) ? db.guilds[guildId].customCommands : [],
     };
     save();
   }

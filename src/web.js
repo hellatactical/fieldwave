@@ -4,7 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 // Small, same-process HTTP server. No database or frontend build required.
-function startWeb({ snapshot, control, settings, logs }, env = process.env) {
+function startWeb({ snapshot, control, settings, commands, logs }, env = process.env) {
   const password = env.PANEL_PASSWORD || '';
   if (password.length < 16 || password === 'CHANGE_ME_TO_A_RANDOM_PASSWORD') {
     throw new Error('Set PANEL_PASSWORD to a unique password of at least 16 characters.');
@@ -85,9 +85,9 @@ function startWeb({ snapshot, control, settings, logs }, env = process.env) {
         sessions.delete(id); res.setHeader('Set-Cookie', cookie('', 0)); return json(200, { ok: true });
       }
       if (req.method === 'GET' && url === '/api/state') return json(200, { ...snapshot(), logs: logs() });
-      if (req.method === 'POST' && (url === '/api/control' || url === '/api/settings')) {
+      if (req.method === 'POST' && (url === '/api/control' || url === '/api/settings' || url === '/api/commands')) {
         const data = await body(req);
-        await (url === '/api/control' ? control(data) : settings(data));
+        await (url === '/api/control' ? control(data) : url === '/api/settings' ? settings(data) : commands(data));
         return json(200, { ok: true });
       }
       throw fail(404, 'Not found');
