@@ -43,6 +43,8 @@ Create and invite your own bot using [the Discord setup steps](SETUP.md#1-create
 7. Open the container's **WebUI**, or visit `http://YOUR-UNRAID-IP:3000`. Sign in with the panel password.
 8. Join a Discord voice channel and use `/play` to begin. The panel controls playback from there.
 
+After signing in, open **Commands** to control built-in commands for the selected Discord server or add up to five simple custom replies. For example, add the name `rules`, the description `Show the server rules`, and your server rules as the response. Fieldwave registers `/rules` in that server and keeps it in appdata across container updates. Leave `REGISTER_COMMANDS` enabled for this feature.
+
 Node, FFmpeg, yt-dlp and the Node dependencies are already inside the image. You do not install them on Unraid or clone the source to use this route.
 
 ### Optional saved template
