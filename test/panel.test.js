@@ -13,7 +13,7 @@ test('panel uses per-server playback, persists defaults, and handles offline/emp
   const { startPanel } = require('../src/panel');
   const { getGuild, getBot } = require('../src/store');
   const { QueueRepeatMode } = require('discord-player');
-  let paused = false, online = true, active = true, previous = 0, skipped = 0, shuffled = 0, refreshes = 0, presences = 0;
+  let paused = false, online = true, active = true, previous = 0, skipped = 0, shuffled = 0, refreshes = 0, presences = 0, commandSyncs = 0;
   const track = { title: 'Test song <script>', author: 'Test artist', duration: '3:00', durationMS: 180000 };
   const queue = { currentTrack: track, repeatMode: 0, channel: { name: 'Music' },
     node: { volume: 75, getTimestamp: () => ({ current: { value: 42000 } }), isPaused: () => paused,
@@ -23,7 +23,7 @@ test('panel uses per-server playback, persists defaults, and handles offline/emp
     delete: () => { active = false; }, setRepeatMode: mode => { queue.repeatMode = mode; },
   };
   const client = { isReady: () => online, uptime: 5000, user: { username: 'Test bot' }, guilds: { cache: new Map([['123', { id: '123', name: 'Test server', members: {} }], ['456', { id: '456', name: 'Quiet server', members: {} }]]) } };
-  const server = startPanel({ client, player: { nodes: { get: id => id === '123' && active ? queue : undefined } }, refresh: async () => refreshes++, idle: async () => {}, presence: () => presences++ });
+  const server = startPanel({ client, player: { nodes: { get: id => id === '123' && active ? queue : undefined } }, refresh: async () => refreshes++, idle: async () => {}, presence: () => presences++, syncCommands: async id => { assert.equal(id, '123'); commandSyncs++; } });
   await once(server, 'listening');
   t.after(() => { server.closeAllConnections(); server.close(); fs.rmSync(dir, { recursive: true, force: true }); });
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -45,7 +45,10 @@ test('panel uses per-server playback, persists defaults, and handles offline/emp
   assert.equal((await post('settings', { guildId: '456', volume: 20, autoplay: true })).status, 200);
   assert.equal(getGuild('456').volume, 20); assert.equal(queue.node.volume, 36);
   assert.equal((await post('settings', { status: 'Evening music' })).status, 200); assert.equal(getBot().status, 'Evening music'); assert.equal(presences, 1);
-  const saved = JSON.parse(fs.readFileSync(path.join(dir, 'settings.json'))); assert.equal(saved.bot.status, 'Evening music'); assert.equal(saved.guilds['456'].autoplay, true);
+  assert.equal((await post('commands', { guildId: '123', disabledCommands: ['roll'], customCommands: [{ name: 'rules', description: 'Show the rules', response: 'Be kind.' }] })).status, 200);
+  assert.deepEqual(getGuild('123').disabledCommands, ['roll']); assert.equal(getGuild('123').customCommands[0].name, 'rules'); assert.equal(commandSyncs, 1);
+  assert.equal((await post('commands', { guildId: '123', disabledCommands: [], customCommands: [{ name: 'play', description: 'Collision', response: 'Nope' }] })).status, 400);
+  const saved = JSON.parse(fs.readFileSync(path.join(dir, 'settings.json'))); assert.equal(saved.bot.status, 'Evening music'); assert.equal(saved.guilds['456'].autoplay, true); assert.equal(saved.guilds['123'].customCommands[0].response, 'Be kind.');
   online = false; assert.equal((await state()).online, false); assert.equal((await post('control', { guildId: '123', action: 'skip' })).status, 400); online = true;
   await action('stop'); assert.equal((await state()).guilds[0].track, null);
   assert.equal((await post('control', { guildId: '123', action: 'skip' })).status, 400);
